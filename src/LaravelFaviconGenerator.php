@@ -3,7 +3,6 @@
 namespace Blockpoint\LaravelFaviconGenerator;
 
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
 use Intervention\Image\ImageManager;
@@ -12,16 +11,18 @@ use Intervention\Image\Interfaces\ImageInterface;
 class LaravelFaviconGenerator
 {
     protected ImageManager $imageManager;
+
     protected string $outputPath;
+
     protected array $generatedFiles = [];
 
     public function __construct()
     {
         // Use Imagick driver if available, otherwise fall back to GD
         if (extension_loaded('imagick')) {
-            $driver = new ImagickDriver();
+            $driver = new ImagickDriver;
         } else {
-            $driver = new Driver();
+            $driver = new Driver;
         }
 
         // Create image manager with configured driver
@@ -32,13 +33,13 @@ class LaravelFaviconGenerator
     /**
      * Generate all favicons from a source image
      *
-     * @param string $sourceImagePath Path to the source image
-     * @param array $manifestOptions Optional manifest options (name, short_name, theme_color, background_color)
+     * @param  string  $sourceImagePath  Path to the source image
+     * @param  array  $manifestOptions  Optional manifest options (name, short_name, theme_color, background_color)
      * @return array List of generated files
      */
     public function generate(string $sourceImagePath, array $manifestOptions = []): array
     {
-        if (!File::exists($sourceImagePath)) {
+        if (! File::exists($sourceImagePath)) {
             throw new \InvalidArgumentException("Source image not found: {$sourceImagePath}");
         }
 
@@ -74,7 +75,7 @@ class LaravelFaviconGenerator
         $tempImages = [];
 
         foreach ($sizes as $size) {
-            $tempPath = sys_get_temp_dir() . "/favicon_{$size}.png";
+            $tempPath = sys_get_temp_dir()."/favicon_{$size}.png";
 
             // Use direct GD functions for maximum quality
             $this->createHighQualityPng($sourceImage, $size, $tempPath);
@@ -116,9 +117,8 @@ class LaravelFaviconGenerator
     /**
      * Generate SVG favicon (copy if source is SVG, otherwise convert)
      *
-     * @param ImageInterface $sourceImage The source image object
-     * @param string $sourceImagePath Path to the source image file
-     * @return void
+     * @param  ImageInterface  $sourceImage  The source image object
+     * @param  string  $sourceImagePath  Path to the source image file
      */
     protected function generateSvgFavicon(ImageInterface $sourceImage, string $sourceImagePath): void
     {
@@ -130,6 +130,7 @@ class LaravelFaviconGenerator
         if (pathinfo($sourceImagePath, PATHINFO_EXTENSION) === 'svg') {
             File::copy($sourceImagePath, $outputPath);
             $this->generatedFiles[] = "{$this->outputPath}/{$filename}";
+
             return;
         }
 
@@ -139,6 +140,7 @@ class LaravelFaviconGenerator
                 // Create SVG using Imagick
                 $this->createSvgFromImage($sourceImagePath, $outputPath);
                 $this->generatedFiles[] = "{$this->outputPath}/{$filename}";
+
                 return;
             } catch (\Exception $e) {
                 // If Imagick conversion fails, we'll try the fallback method
@@ -148,12 +150,12 @@ class LaravelFaviconGenerator
         // Fallback: Create a simple SVG wrapper around a PNG data URI
         try {
             // Create a temporary PNG file
-            $tempPngPath = sys_get_temp_dir() . '/temp_favicon_' . uniqid() . '.png';
+            $tempPngPath = sys_get_temp_dir().'/temp_favicon_'.uniqid().'.png';
             $this->createHighQualityPng($sourceImage, 512, $tempPngPath); // Use a large size for quality
 
             // Convert PNG to base64 data URI
             $pngData = base64_encode(file_get_contents($tempPngPath));
-            $dataUri = 'data:image/png;base64,' . $pngData;
+            $dataUri = 'data:image/png;base64,'.$pngData;
 
             // Create a simple SVG that embeds the PNG as an image
             $svgContent = <<<SVG
@@ -225,7 +227,7 @@ SVG;
     /**
      * Generate Web Manifest file (site.webmanifest)
      *
-     * @param array $options Optional manifest options (name, short_name, theme_color, background_color)
+     * @param  array  $options  Optional manifest options (name, short_name, theme_color, background_color)
      */
     protected function generateWebManifest(array $options = []): void
     {
@@ -234,19 +236,19 @@ SVG;
         $content = $config['content'] ?? [];
 
         // Apply custom options if provided
-        if (!empty($options['name'])) {
+        if (! empty($options['name'])) {
             $content['name'] = $options['name'];
         }
 
-        if (!empty($options['short_name'])) {
+        if (! empty($options['short_name'])) {
             $content['short_name'] = $options['short_name'];
         }
 
-        if (!empty($options['theme_color'])) {
+        if (! empty($options['theme_color'])) {
             $content['theme_color'] = $options['theme_color'];
         }
 
-        if (!empty($options['background_color'])) {
+        if (! empty($options['background_color'])) {
             $content['background_color'] = $options['background_color'];
         }
 
@@ -280,7 +282,7 @@ SVG;
     protected function ensureOutputDirectoryExists(): void
     {
         $outputDir = public_path($this->outputPath);
-        if (!File::exists($outputDir)) {
+        if (! File::exists($outputDir)) {
             File::makeDirectory($outputDir, 0755, true);
         }
     }
@@ -293,15 +295,15 @@ SVG;
     {
         // Ensure output directory exists
         $outputDir = dirname($outputPath);
-        if (!file_exists($outputDir)) {
+        if (! file_exists($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
 
         // If we have multiple PNG files, create a proper ICO file
-        if (!empty($pngPaths)) {
+        if (! empty($pngPaths)) {
             // Create a new ICO file
             $fp = fopen($outputPath, 'wb');
-            if (!$fp) {
+            if (! $fp) {
                 throw new \RuntimeException("Could not open file {$outputPath} for writing");
             }
 
@@ -321,13 +323,13 @@ SVG;
             // Process each PNG and create directory entries
             foreach ($pngPaths as $index => $pngPath) {
                 $pngData = file_get_contents($pngPath);
-                if (!$pngData) {
+                if (! $pngData) {
                     continue;
                 }
 
                 // Get image dimensions
                 $imageInfo = getimagesize($pngPath);
-                if (!$imageInfo) {
+                if (! $imageInfo) {
                     continue;
                 }
 
@@ -374,9 +376,9 @@ SVG;
      * This method ensures the output image has the exact width and height specified
      * by creating a canvas of the target size and placing the resized image centered on it
      *
-     * @param ImageInterface $sourceImage The source image
-     * @param int $width Target width
-     * @param int $height Target height
+     * @param  ImageInterface  $sourceImage  The source image
+     * @param  int  $width  Target width
+     * @param  int  $height  Target height
      * @return ImageInterface The resized image with exact dimensions
      */
     protected function createExactSizeImage(ImageInterface $sourceImage, int $width, int $height): ImageInterface
@@ -420,24 +422,24 @@ SVG;
      * Create a high-quality PNG image using direct Imagick functions
      * This bypasses Intervention Image for maximum quality on large icons
      *
-     * @param ImageInterface $sourceImage The source image
-     * @param int $size Target size (width and height)
-     * @param string $outputPath Path where the PNG should be saved
-     * @return void
+     * @param  ImageInterface  $sourceImage  The source image
+     * @param  int  $size  Target size (width and height)
+     * @param  string  $outputPath  Path where the PNG should be saved
      */
     protected function createHighQualityPng(ImageInterface $sourceImage, int $size, string $outputPath): void
     {
         // Check if Imagick is available
-        if (!extension_loaded('imagick')) {
+        if (! extension_loaded('imagick')) {
             // Fallback to Intervention Image if Imagick is not available
             $resizedImage = $this->createExactSizeImage($sourceImage, $size, $size);
             $resizedImage->toPng(interlaced: false, indexed: false)->save($outputPath);
+
             return;
         }
 
         try {
             // Get the source image as a temporary file
-            $tempSourcePath = sys_get_temp_dir() . '/source_image_' . uniqid() . '.png';
+            $tempSourcePath = sys_get_temp_dir().'/source_image_'.uniqid().'.png';
             $sourceImage->toPng()->save($tempSourcePath);
 
             // Create a new Imagick instance
@@ -467,7 +469,7 @@ SVG;
             $imagick->resizeImage($newWidth, $newHeight, \Imagick::FILTER_LANCZOS, 1);
 
             // Create a new canvas with transparent background
-            $canvas = new \Imagick();
+            $canvas = new \Imagick;
             $canvas->newImage($size, $size, new \ImagickPixel('transparent'));
             $canvas->setImageFormat('png');
 
@@ -480,7 +482,7 @@ SVG;
 
             // Ensure the output directory exists
             $outputDir = dirname($outputPath);
-            if (!file_exists($outputDir)) {
+            if (! file_exists($outputDir)) {
                 mkdir($outputDir, 0755, true);
             }
 
@@ -503,9 +505,9 @@ SVG;
     /**
      * Create an SVG file from an image using Imagick
      *
-     * @param string $sourceImagePath Path to the source image
-     * @param string $outputPath Path where the SVG should be saved
-     * @return void
+     * @param  string  $sourceImagePath  Path to the source image
+     * @param  string  $outputPath  Path where the SVG should be saved
+     *
      * @throws \Exception If conversion fails
      */
     protected function createSvgFromImage(string $sourceImagePath, string $outputPath): void
@@ -519,7 +521,7 @@ SVG;
 
         // Ensure the output directory exists
         $outputDir = dirname($outputPath);
-        if (!file_exists($outputDir)) {
+        if (! file_exists($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
 
@@ -529,7 +531,7 @@ SVG;
             $imagick->writeImage($outputPath);
         } catch (\Exception $e) {
             // If direct conversion fails, create a PNG and embed it in an SVG
-            $tempPngPath = sys_get_temp_dir() . '/temp_svg_source_' . uniqid() . '.png';
+            $tempPngPath = sys_get_temp_dir().'/temp_svg_source_'.uniqid().'.png';
 
             // Save as high-quality PNG
             $imagick->setImageFormat('png');
@@ -542,7 +544,7 @@ SVG;
 
             // Convert PNG to base64 data URI
             $pngData = base64_encode(file_get_contents($tempPngPath));
-            $dataUri = 'data:image/png;base64,' . $pngData;
+            $dataUri = 'data:image/png;base64,'.$pngData;
 
             // Create an SVG that embeds the PNG as an image
             $svgContent = <<<SVG

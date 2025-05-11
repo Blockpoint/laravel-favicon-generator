@@ -2,11 +2,11 @@
 
 namespace Blockpoint\LaravelFaviconGenerator;
 
+use Blockpoint\LaravelFaviconGenerator\Commands\LaravelFaviconGeneratorCommand;
 use Blockpoint\LaravelFaviconGenerator\View\Components\FaviconMeta;
 use Illuminate\Support\Facades\Blade;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Blockpoint\LaravelFaviconGenerator\Commands\LaravelFaviconGeneratorCommand;
 
 class LaravelFaviconGeneratorServiceProvider extends PackageServiceProvider
 {
@@ -31,7 +31,7 @@ class LaravelFaviconGeneratorServiceProvider extends PackageServiceProvider
 
         // Register the LaravelFaviconGenerator singleton
         $this->app->singleton(LaravelFaviconGenerator::class, function () {
-            return new LaravelFaviconGenerator();
+            return new LaravelFaviconGenerator;
         });
     }
 
