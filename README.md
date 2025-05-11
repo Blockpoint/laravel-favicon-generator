@@ -77,7 +77,13 @@ This will output the necessary meta tags for all generated favicons:
 <link rel="shortcut icon" href="/favicon/favicon.ico" />
 <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
 <link rel="manifest" href="/favicon/site.webmanifest" />
+<meta name="application-name" content="Your App Name" />
+<meta name="apple-mobile-web-app-title" content="Your App Name" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 ```
+
+The component will automatically use the application name from your web manifest file or fall back to your Laravel app name configuration.
 
 ### Programmatic Usage
 

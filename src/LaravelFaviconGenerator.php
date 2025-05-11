@@ -155,9 +155,9 @@ class LaravelFaviconGenerator
             $pngData = base64_encode(file_get_contents($tempPngPath));
             $dataUri = 'data:image/png;base64,' . $pngData;
 
-            // Create a simple SVG that embeds the PNG as an image
+            // Create a simple SVG that embeds the PNG as an image with a square viewBox
             $svgContent = <<<SVG
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512">
   <image width="512" height="512" xlink:href="{$dataUri}"/>
 </svg>
 SVG;
@@ -540,14 +540,21 @@ SVG;
             $width = $imagick->getImageWidth();
             $height = $imagick->getImageHeight();
 
+            // Calculate the size for a square viewBox (use the larger dimension)
+            $size = max($width, $height);
+
             // Convert PNG to base64 data URI
             $pngData = base64_encode(file_get_contents($tempPngPath));
             $dataUri = 'data:image/png;base64,' . $pngData;
 
-            // Create an SVG that embeds the PNG as an image
+            // Calculate centering position
+            $posX = (int)(($size - $width) / 2);
+            $posY = (int)(($size - $height) / 2);
+
+            // Create an SVG that embeds the PNG as an image with a square viewBox
             $svgContent = <<<SVG
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%" viewBox="0 0 {$width} {$height}">
-  <image width="{$width}" height="{$height}" xlink:href="{$dataUri}"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{$size}" height="{$size}" viewBox="0 0 {$size} {$size}">
+  <image width="{$width}" height="{$height}" x="{$posX}" y="{$posY}" xlink:href="{$dataUri}"/>
 </svg>
 SVG;
 
