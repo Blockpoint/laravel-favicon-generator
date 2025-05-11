@@ -2,20 +2,11 @@
 
 All notable changes to `laravel-favicon-generator` will be documented in this file.
 
-## 1.1.0 - 2024-XX-XX
+## 1.1.0 - 2025-05-11
 
-### Added
-- Added support for high-quality PNG generation using Imagick when available
-- Added fallback to GD when Imagick is not available
-- Added SVG favicon generation for any source image format
+- Fixed bug where .svg favicons were not generated correctly from non-SVG source images
+- Added command options to specify web manifest details (name, short_name, theme_color, background_color)
 
-### Changed
-- Significantly improved the quality of generated PNG icons, especially for larger sizes
-- Enhanced resizing logic to maintain aspect ratio while ensuring exact dimensions
-- Optimized PNG compression settings for maximum quality
-- Improved SVG generation with multiple fallback methods
-- Removed unnecessary ExampleTest file
-
-## 1.0.0 - 2024-XX-XX
+## 1.0.0 - 2025-05-11
 
 - Initial release

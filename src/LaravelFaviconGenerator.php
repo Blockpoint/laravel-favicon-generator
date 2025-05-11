@@ -33,9 +33,10 @@ class LaravelFaviconGenerator
      * Generate all favicons from a source image
      *
      * @param string $sourceImagePath Path to the source image
+     * @param array $manifestOptions Optional manifest options (name, short_name, theme_color, background_color)
      * @return array List of generated files
      */
-    public function generate(string $sourceImagePath): array
+    public function generate(string $sourceImagePath, array $manifestOptions = []): array
     {
         if (!File::exists($sourceImagePath)) {
             throw new \InvalidArgumentException("Source image not found: {$sourceImagePath}");
@@ -52,7 +53,7 @@ class LaravelFaviconGenerator
         $this->generateSvgFavicon($sourceImage, $sourceImagePath);
         $this->generateAppleTouchIcon($sourceImage);
         $this->generateWebAppManifestIcons($sourceImage);
-        $this->generateWebManifest();
+        $this->generateWebManifest($manifestOptions);
 
         return $this->generatedFiles;
     }
@@ -223,12 +224,31 @@ SVG;
 
     /**
      * Generate Web Manifest file (site.webmanifest)
+     *
+     * @param array $options Optional manifest options (name, short_name, theme_color, background_color)
      */
-    protected function generateWebManifest(): void
+    protected function generateWebManifest(array $options = []): void
     {
         $config = config('favicon-generator.web_manifest');
         $filename = $config['filename'] ?? 'site.webmanifest';
         $content = $config['content'] ?? [];
+
+        // Apply custom options if provided
+        if (!empty($options['name'])) {
+            $content['name'] = $options['name'];
+        }
+
+        if (!empty($options['short_name'])) {
+            $content['short_name'] = $options['short_name'];
+        }
+
+        if (!empty($options['theme_color'])) {
+            $content['theme_color'] = $options['theme_color'];
+        }
+
+        if (!empty($options['background_color'])) {
+            $content['background_color'] = $options['background_color'];
+        }
 
         // Add icons to manifest
         $manifestIcons = [];
@@ -237,9 +257,9 @@ SVG;
         $filenamePattern = $iconConfig['filename_pattern'] ?? 'web-app-manifest-{size}x{size}.png';
 
         foreach ($sizes as $size) {
-            $filename = str_replace('{size}', $size, $filenamePattern);
+            $iconFilename = str_replace('{size}', $size, $filenamePattern);
             $manifestIcons[] = [
-                'src' => "/{$this->outputPath}/{$filename}",
+                'src' => "/{$this->outputPath}/{$iconFilename}",
                 'sizes' => "{$size}x{$size}",
                 'type' => 'image/png',
             ];
@@ -248,10 +268,10 @@ SVG;
         $content['icons'] = $manifestIcons;
 
         // Write manifest file
-        $manifestPath = public_path("{$this->outputPath}/{$config['filename']}");
+        $manifestPath = public_path("{$this->outputPath}/{$filename}");
         File::put($manifestPath, json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        $this->generatedFiles[] = "{$this->outputPath}/{$config['filename']}";
+        $this->generatedFiles[] = "{$this->outputPath}/{$filename}";
     }
 
     /**

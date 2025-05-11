@@ -9,7 +9,11 @@ use Illuminate\Support\Facades\File;
 class LaravelFaviconGeneratorCommand extends Command
 {
     public $signature = 'favicon:generate {source : Path to the source image file}'
-        . ' {--force : Force overwrite existing favicons}';
+        . ' {--force : Force overwrite existing favicons}'
+        . ' {--name= : Application name for the web manifest}'
+        . ' {--short-name= : Short application name for the web manifest}'
+        . ' {--theme-color= : Theme color for the web manifest}'
+        . ' {--background-color= : Background color for the web manifest}';
 
     public $description = 'Generate favicon files from a source image';
 
@@ -35,10 +39,48 @@ class LaravelFaviconGeneratorCommand extends Command
             }
         }
 
+        // Get manifest options with defaults from config
+        $configName = config('favicon-generator.web_manifest.content.name', '');
+        $configShortName = config('favicon-generator.web_manifest.content.short_name', '');
+        $configThemeColor = config('favicon-generator.web_manifest.content.theme_color', '#ffffff');
+        $configBgColor = config('favicon-generator.web_manifest.content.background_color', '#ffffff');
+
+        // Ask for application name if not provided
+        $name = $this->option('name');
+        if (is_null($name)) {
+            $name = $this->ask('Application name for web manifest', $configName);
+        }
+
+        // Ask for short name if not provided
+        $shortName = $this->option('short-name');
+        if (is_null($shortName)) {
+            $shortName = $this->ask('Short application name for web manifest', $configShortName);
+        }
+
+        // Ask for theme color if not provided
+        $themeColor = $this->option('theme-color');
+        if (is_null($themeColor)) {
+            $themeColor = $this->ask('Theme color (hexadecimal)', $configThemeColor);
+        }
+
+        // Ask for background color if not provided
+        $bgColor = $this->option('background-color');
+        if (is_null($bgColor)) {
+            $bgColor = $this->ask('Background color (hexadecimal)', $configBgColor);
+        }
+
+        // Prepare manifest options
+        $manifestOptions = [
+            'name' => $name,
+            'short_name' => $shortName,
+            'theme_color' => $themeColor,
+            'background_color' => $bgColor,
+        ];
+
         $this->info('Generating favicons...');
 
         try {
-            $generatedFiles = $generator->generate($sourcePath);
+            $generatedFiles = $generator->generate($sourcePath, $manifestOptions);
 
             $this->info('Favicons generated successfully!');
             $this->info('Generated files:');
