@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Blockpoint\LaravelFaviconGenerator\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class LaravelFaviconGeneratorCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'laravel-favicon-generator';
 
     public $description = 'My command';
 
