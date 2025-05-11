@@ -34,9 +34,10 @@ class LaravelFaviconGenerator
      * Generate all favicons from a source image
      *
      * @param  string  $sourceImagePath  Path to the source image
+     * @param  array  $manifestOptions  Optional manifest options (name, short_name, theme_color, background_color)
      * @return array List of generated files
      */
-    public function generate(string $sourceImagePath): array
+    public function generate(string $sourceImagePath, array $manifestOptions = []): array
     {
         if (! File::exists($sourceImagePath)) {
             throw new \InvalidArgumentException("Source image not found: {$sourceImagePath}");
@@ -50,10 +51,10 @@ class LaravelFaviconGenerator
         // Generate each favicon type
         $this->generateIcoFavicon($sourceImage);
         $this->generatePngFavicon($sourceImage);
-        $this->generateSvgFavicon($sourceImagePath);
+        $this->generateSvgFavicon($sourceImage, $sourceImagePath);
         $this->generateAppleTouchIcon($sourceImage);
         $this->generateWebAppManifestIcons($sourceImage);
-        $this->generateWebManifest();
+        $this->generateWebManifest($manifestOptions);
 
         return $this->generatedFiles;
     }
@@ -115,23 +116,67 @@ class LaravelFaviconGenerator
 
     /**
      * Generate SVG favicon (copy if source is SVG, otherwise convert)
+     *
+     * @param  ImageInterface  $sourceImage  The source image object
+     * @param  string  $sourceImagePath  Path to the source image file
      */
-    protected function generateSvgFavicon(string $sourceImagePath): void
+    protected function generateSvgFavicon(ImageInterface $sourceImage, string $sourceImagePath): void
     {
         $config = config('favicon-generator.favicon_types.svg');
         $filename = $config['filename'] ?? 'favicon.svg';
+        $outputPath = public_path("{$this->outputPath}/{$filename}");
 
         // If source is already SVG, just copy it
         if (pathinfo($sourceImagePath, PATHINFO_EXTENSION) === 'svg') {
-            $outputPath = public_path("{$this->outputPath}/{$filename}");
             File::copy($sourceImagePath, $outputPath);
-        } else {
-            // For proper SVG conversion, we'd need a more sophisticated library
-            // For now, we'll just copy the source image if it's SVG, otherwise skip
+            $this->generatedFiles[] = "{$this->outputPath}/{$filename}";
+
             return;
         }
 
-        $this->generatedFiles[] = "{$this->outputPath}/{$filename}";
+        // Try to convert to SVG using Imagick if available
+        if (extension_loaded('imagick') && class_exists('\Imagick')) {
+            try {
+                // Create SVG using Imagick
+                $this->createSvgFromImage($sourceImagePath, $outputPath);
+                $this->generatedFiles[] = "{$this->outputPath}/{$filename}";
+
+                return;
+            } catch (\Exception $e) {
+                // If Imagick conversion fails, we'll try the fallback method
+            }
+        }
+
+        // Fallback: Create a simple SVG wrapper around a PNG data URI
+        try {
+            // Create a temporary PNG file
+            $tempPngPath = sys_get_temp_dir().'/temp_favicon_'.uniqid().'.png';
+            $this->createHighQualityPng($sourceImage, 512, $tempPngPath); // Use a large size for quality
+
+            // Convert PNG to base64 data URI
+            $pngData = base64_encode(file_get_contents($tempPngPath));
+            $dataUri = 'data:image/png;base64,'.$pngData;
+
+            // Create a simple SVG that embeds the PNG as an image
+            $svgContent = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%" viewBox="0 0 512 512">
+  <image width="512" height="512" xlink:href="{$dataUri}"/>
+</svg>
+SVG;
+
+            // Write the SVG file
+            File::put($outputPath, $svgContent);
+
+            // Clean up
+            if (file_exists($tempPngPath)) {
+                unlink($tempPngPath);
+            }
+
+            $this->generatedFiles[] = "{$this->outputPath}/{$filename}";
+        } catch (\Exception $e) {
+            // If all conversion methods fail, log the error but continue with other icons
+            error_log("Failed to generate SVG favicon: {$e->getMessage()}");
+        }
     }
 
     /**
@@ -181,12 +226,31 @@ class LaravelFaviconGenerator
 
     /**
      * Generate Web Manifest file (site.webmanifest)
+     *
+     * @param  array  $options  Optional manifest options (name, short_name, theme_color, background_color)
      */
-    protected function generateWebManifest(): void
+    protected function generateWebManifest(array $options = []): void
     {
         $config = config('favicon-generator.web_manifest');
         $filename = $config['filename'] ?? 'site.webmanifest';
         $content = $config['content'] ?? [];
+
+        // Apply custom options if provided
+        if (! empty($options['name'])) {
+            $content['name'] = $options['name'];
+        }
+
+        if (! empty($options['short_name'])) {
+            $content['short_name'] = $options['short_name'];
+        }
+
+        if (! empty($options['theme_color'])) {
+            $content['theme_color'] = $options['theme_color'];
+        }
+
+        if (! empty($options['background_color'])) {
+            $content['background_color'] = $options['background_color'];
+        }
 
         // Add icons to manifest
         $manifestIcons = [];
@@ -195,9 +259,9 @@ class LaravelFaviconGenerator
         $filenamePattern = $iconConfig['filename_pattern'] ?? 'web-app-manifest-{size}x{size}.png';
 
         foreach ($sizes as $size) {
-            $filename = str_replace('{size}', $size, $filenamePattern);
+            $iconFilename = str_replace('{size}', $size, $filenamePattern);
             $manifestIcons[] = [
-                'src' => "/{$this->outputPath}/{$filename}",
+                'src' => "/{$this->outputPath}/{$iconFilename}",
                 'sizes' => "{$size}x{$size}",
                 'type' => 'image/png',
             ];
@@ -206,10 +270,10 @@ class LaravelFaviconGenerator
         $content['icons'] = $manifestIcons;
 
         // Write manifest file
-        $manifestPath = public_path("{$this->outputPath}/{$config['filename']}");
+        $manifestPath = public_path("{$this->outputPath}/{$filename}");
         File::put($manifestPath, json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        $this->generatedFiles[] = "{$this->outputPath}/{$config['filename']}";
+        $this->generatedFiles[] = "{$this->outputPath}/{$filename}";
     }
 
     /**
@@ -436,5 +500,69 @@ class LaravelFaviconGenerator
             $resizedImage = $this->createExactSizeImage($sourceImage, $size, $size);
             $resizedImage->toPng(interlaced: false, indexed: false)->save($outputPath);
         }
+    }
+
+    /**
+     * Create an SVG file from an image using Imagick
+     *
+     * @param  string  $sourceImagePath  Path to the source image
+     * @param  string  $outputPath  Path where the SVG should be saved
+     *
+     * @throws \Exception If conversion fails
+     */
+    protected function createSvgFromImage(string $sourceImagePath, string $outputPath): void
+    {
+        // Create a new Imagick instance
+        $imagick = new \Imagick($sourceImagePath);
+
+        // Set high quality settings
+        $imagick->setImageResolution(300, 300);
+        $imagick->resampleImage(300, 300, \Imagick::FILTER_LANCZOS, 1);
+
+        // Ensure the output directory exists
+        $outputDir = dirname($outputPath);
+        if (! file_exists($outputDir)) {
+            mkdir($outputDir, 0755, true);
+        }
+
+        try {
+            // Try to convert directly to SVG
+            $imagick->setImageFormat('svg');
+            $imagick->writeImage($outputPath);
+        } catch (\Exception $e) {
+            // If direct conversion fails, create a PNG and embed it in an SVG
+            $tempPngPath = sys_get_temp_dir().'/temp_svg_source_'.uniqid().'.png';
+
+            // Save as high-quality PNG
+            $imagick->setImageFormat('png');
+            $imagick->setImageCompressionQuality(100);
+            $imagick->writeImage($tempPngPath);
+
+            // Get image dimensions
+            $width = $imagick->getImageWidth();
+            $height = $imagick->getImageHeight();
+
+            // Convert PNG to base64 data URI
+            $pngData = base64_encode(file_get_contents($tempPngPath));
+            $dataUri = 'data:image/png;base64,'.$pngData;
+
+            // Create an SVG that embeds the PNG as an image
+            $svgContent = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%" viewBox="0 0 {$width} {$height}">
+  <image width="{$width}" height="{$height}" xlink:href="{$dataUri}"/>
+</svg>
+SVG;
+
+            // Write the SVG file
+            File::put($outputPath, $svgContent);
+
+            // Clean up
+            if (file_exists($tempPngPath)) {
+                unlink($tempPngPath);
+            }
+        }
+
+        // Clean up
+        $imagick->clear();
     }
 }

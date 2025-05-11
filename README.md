@@ -16,6 +16,7 @@ A Laravel package to generate and manage high-quality favicons for your web appl
 - Creates favicon.ico, favicon-96x96.png, favicon.svg, apple-touch-icon-180x180.png
 - Generates web app manifest icons (192x192 and 512x512)
 - Creates site.webmanifest file
+- Generates SVG favicon from any source image format
 - Maintains aspect ratio while ensuring exact dimensions
 
 ## Installation
