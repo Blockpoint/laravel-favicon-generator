@@ -550,8 +550,8 @@ SVG;
             $dataUri = 'data:image/png;base64,'.$pngData;
 
             // Calculate centering position
-            $posX = (int)(($size - $width) / 2);
-            $posY = (int)(($size - $height) / 2);
+            $posX = (int) (($size - $width) / 2);
+            $posY = (int) (($size - $height) / 2);
 
             // Create an SVG that embeds the PNG as an image with a square viewBox
             $svgContent = <<<SVG
