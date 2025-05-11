@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\File;
 class LaravelFaviconGeneratorCommand extends Command
 {
     public $signature = 'favicon:generate {source : Path to the source image file}'
-        . ' {--force : Force overwrite existing favicons}';
+        .' {--force : Force overwrite existing favicons}';
 
     public $description = 'Generate favicon files from a source image';
 
@@ -19,8 +19,9 @@ class LaravelFaviconGeneratorCommand extends Command
         $force = $this->option('force');
 
         // Check if source file exists
-        if (!File::exists($sourcePath)) {
+        if (! File::exists($sourcePath)) {
             $this->error("Source file not found: {$sourcePath}");
+
             return self::FAILURE;
         }
 
@@ -28,9 +29,10 @@ class LaravelFaviconGeneratorCommand extends Command
         $outputPath = config('favicon-generator.output_path', 'favicon');
         $outputDir = public_path($outputPath);
 
-        if (File::exists($outputDir) && !$force && File::isDirectory($outputDir) && count(File::files($outputDir)) > 0) {
-            if (!$this->confirm('Favicon files already exist. Do you want to overwrite them?')) {
+        if (File::exists($outputDir) && ! $force && File::isDirectory($outputDir) && count(File::files($outputDir)) > 0) {
+            if (! $this->confirm('Favicon files already exist. Do you want to overwrite them?')) {
                 $this->info('Operation cancelled.');
+
                 return self::SUCCESS;
             }
         }
@@ -53,6 +55,7 @@ class LaravelFaviconGeneratorCommand extends Command
             return self::SUCCESS;
         } catch (\Exception $e) {
             $this->error("Error generating favicons: {$e->getMessage()}");
+
             return self::FAILURE;
         }
     }

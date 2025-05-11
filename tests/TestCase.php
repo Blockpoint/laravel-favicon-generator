@@ -2,9 +2,9 @@
 
 namespace Blockpoint\LaravelFaviconGenerator\Tests;
 
+use Blockpoint\LaravelFaviconGenerator\LaravelFaviconGeneratorServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Blockpoint\LaravelFaviconGenerator\LaravelFaviconGeneratorServiceProvider;
 
 class TestCase extends Orchestra
 {

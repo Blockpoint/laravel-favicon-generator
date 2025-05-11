@@ -3,7 +3,6 @@
 namespace Blockpoint\LaravelFaviconGenerator;
 
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
 use Intervention\Image\ImageManager;
@@ -12,16 +11,18 @@ use Intervention\Image\Interfaces\ImageInterface;
 class LaravelFaviconGenerator
 {
     protected ImageManager $imageManager;
+
     protected string $outputPath;
+
     protected array $generatedFiles = [];
 
     public function __construct()
     {
         // Use Imagick driver if available, otherwise fall back to GD
         if (extension_loaded('imagick')) {
-            $driver = new ImagickDriver();
+            $driver = new ImagickDriver;
         } else {
-            $driver = new Driver();
+            $driver = new Driver;
         }
 
         // Create image manager with configured driver
@@ -32,12 +33,12 @@ class LaravelFaviconGenerator
     /**
      * Generate all favicons from a source image
      *
-     * @param string $sourceImagePath Path to the source image
+     * @param  string  $sourceImagePath  Path to the source image
      * @return array List of generated files
      */
     public function generate(string $sourceImagePath): array
     {
-        if (!File::exists($sourceImagePath)) {
+        if (! File::exists($sourceImagePath)) {
             throw new \InvalidArgumentException("Source image not found: {$sourceImagePath}");
         }
 
@@ -73,7 +74,7 @@ class LaravelFaviconGenerator
         $tempImages = [];
 
         foreach ($sizes as $size) {
-            $tempPath = sys_get_temp_dir() . "/favicon_{$size}.png";
+            $tempPath = sys_get_temp_dir()."/favicon_{$size}.png";
 
             // Use direct GD functions for maximum quality
             $this->createHighQualityPng($sourceImage, $size, $tempPath);
@@ -217,7 +218,7 @@ class LaravelFaviconGenerator
     protected function ensureOutputDirectoryExists(): void
     {
         $outputDir = public_path($this->outputPath);
-        if (!File::exists($outputDir)) {
+        if (! File::exists($outputDir)) {
             File::makeDirectory($outputDir, 0755, true);
         }
     }
@@ -230,15 +231,15 @@ class LaravelFaviconGenerator
     {
         // Ensure output directory exists
         $outputDir = dirname($outputPath);
-        if (!file_exists($outputDir)) {
+        if (! file_exists($outputDir)) {
             mkdir($outputDir, 0755, true);
         }
 
         // If we have multiple PNG files, create a proper ICO file
-        if (!empty($pngPaths)) {
+        if (! empty($pngPaths)) {
             // Create a new ICO file
             $fp = fopen($outputPath, 'wb');
-            if (!$fp) {
+            if (! $fp) {
                 throw new \RuntimeException("Could not open file {$outputPath} for writing");
             }
 
@@ -258,13 +259,13 @@ class LaravelFaviconGenerator
             // Process each PNG and create directory entries
             foreach ($pngPaths as $index => $pngPath) {
                 $pngData = file_get_contents($pngPath);
-                if (!$pngData) {
+                if (! $pngData) {
                     continue;
                 }
 
                 // Get image dimensions
                 $imageInfo = getimagesize($pngPath);
-                if (!$imageInfo) {
+                if (! $imageInfo) {
                     continue;
                 }
 
@@ -311,9 +312,9 @@ class LaravelFaviconGenerator
      * This method ensures the output image has the exact width and height specified
      * by creating a canvas of the target size and placing the resized image centered on it
      *
-     * @param ImageInterface $sourceImage The source image
-     * @param int $width Target width
-     * @param int $height Target height
+     * @param  ImageInterface  $sourceImage  The source image
+     * @param  int  $width  Target width
+     * @param  int  $height  Target height
      * @return ImageInterface The resized image with exact dimensions
      */
     protected function createExactSizeImage(ImageInterface $sourceImage, int $width, int $height): ImageInterface
@@ -357,24 +358,24 @@ class LaravelFaviconGenerator
      * Create a high-quality PNG image using direct Imagick functions
      * This bypasses Intervention Image for maximum quality on large icons
      *
-     * @param ImageInterface $sourceImage The source image
-     * @param int $size Target size (width and height)
-     * @param string $outputPath Path where the PNG should be saved
-     * @return void
+     * @param  ImageInterface  $sourceImage  The source image
+     * @param  int  $size  Target size (width and height)
+     * @param  string  $outputPath  Path where the PNG should be saved
      */
     protected function createHighQualityPng(ImageInterface $sourceImage, int $size, string $outputPath): void
     {
         // Check if Imagick is available
-        if (!extension_loaded('imagick')) {
+        if (! extension_loaded('imagick')) {
             // Fallback to Intervention Image if Imagick is not available
             $resizedImage = $this->createExactSizeImage($sourceImage, $size, $size);
             $resizedImage->toPng(interlaced: false, indexed: false)->save($outputPath);
+
             return;
         }
 
         try {
             // Get the source image as a temporary file
-            $tempSourcePath = sys_get_temp_dir() . '/source_image_' . uniqid() . '.png';
+            $tempSourcePath = sys_get_temp_dir().'/source_image_'.uniqid().'.png';
             $sourceImage->toPng()->save($tempSourcePath);
 
             // Create a new Imagick instance
@@ -404,7 +405,7 @@ class LaravelFaviconGenerator
             $imagick->resizeImage($newWidth, $newHeight, \Imagick::FILTER_LANCZOS, 1);
 
             // Create a new canvas with transparent background
-            $canvas = new \Imagick();
+            $canvas = new \Imagick;
             $canvas->newImage($size, $size, new \ImagickPixel('transparent'));
             $canvas->setImageFormat('png');
 
@@ -417,7 +418,7 @@ class LaravelFaviconGenerator
 
             // Ensure the output directory exists
             $outputDir = dirname($outputPath);
-            if (!file_exists($outputDir)) {
+            if (! file_exists($outputDir)) {
                 mkdir($outputDir, 0755, true);
             }
 
